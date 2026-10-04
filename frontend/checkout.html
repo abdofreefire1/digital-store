@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إتمام الطلب - Digital Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: '#4f46e5', secondary: '#10b981' } } } }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased flex flex-col min-h-screen">
+    
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center text-gray-900 font-bold text-xl">
+                <i class="fa-solid fa-store text-primary ml-2"></i> Digital Store
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 py-8 w-full">
+        <h2 class="text-2xl font-bold mb-6">إتمام الطلب</h2>
+        
+        <div id="loading" class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-4xl text-primary"></i></div>
+        
+        <div id="checkout-form" class="hidden">
+            <form id="orderForm" class="bg-white rounded-lg shadow-md p-6">
+                <!-- Product Summary -->
+                <div class="border-b pb-4 mb-6" id="product-summary"></div>
+                
+                <h3 class="text-lg font-bold mb-4">معلومات المشتري</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">الاسم الكامل</label>
+                        <input type="text" id="c_name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-primary focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">البريد الإلكتروني</label>
+                        <input type="email" id="c_email" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-primary focus:ring-primary">
+                    </div>
+                </div>
+
+                <div id="dynamic-fields" class="mb-6"></div>
+
+                <h3 class="text-lg font-bold mb-4">طريقة الدفع</h3>
+                <div class="space-y-4 mb-6">
+                    <label class="flex items-center p-4 border rounded cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="payment_method" value="1" class="h-4 w-4 text-primary" required>
+                        <span class="ml-3 font-medium">BaridiMob / CCP</span>
+                    </label>
+                    <label class="flex items-center p-4 border rounded cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="payment_method" value="2" class="h-4 w-4 text-primary">
+                        <span class="ml-3 font-medium text-green-600">
+                            <i class="fa-brands fa-usps"></i> USDT (الدفع التلقائي)
+                        </span>
+                    </label>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-primary text-white font-bold py-3 px-4 rounded hover:bg-indigo-700 transition flex justify-center items-center">
+                    تأكيد الطلب
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        let currentProduct = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+            if (!productId) return window.location.href = 'index.html';
+
+            try {
+                const response = await ApiService.get(`/products/${productId}`);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('checkout-form').classList.remove('hidden');
+                
+                currentProduct = response.data;
+                
+                // Render Summary
+                document.getElementById('product-summary').innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-lg">${currentProduct.name}</p>
+                            <p class="text-sm text-gray-500">الكمية: 1</p>
+                        </div>
+                        <div class="text-xl font-bold text-primary">${currentProduct.final_price_dzd} د.ج</div>
+                    </div>
+                `;
+
+                // Render dynamic fields
+                if (currentProduct.required_fields && currentProduct.required_fields.length > 0) {
+                    let html = '<h3 class="text-lg font-bold mb-4">معلومات إضافية مطلوبة</h3><div class="grid gap-4">';
+                    currentProduct.required_fields.forEach((field, idx) => {
+                        html += `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">${field.field_name}</label>
+                                <input type="${field.field_type}" data-custom-field="${field.field_name}" ${field.is_required ? 'required' : ''} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    document.getElementById('dynamic-fields').innerHTML = html;
+                }
+
+            } catch (e) {
+                alert('خطأ في تحميل المنتج.');
+            }
+        });
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...';
+            btn.disabled = true;
+
+            const paymentMethodId = document.querySelector('input[name="payment_method"]:checked').value;
+            
+            const customData = {};
+            document.querySelectorAll('[data-custom-field]').forEach(input => {
+                customData[input.getAttribute('data-custom-field')] = input.value;
+            });
+
+            const orderData = {
+                product_id: currentProduct.id,
+                customer_name: document.getElementById('c_name').value,
+                customer_email: document.getElementById('c_email').value,
+                payment_method_id: parseInt(paymentMethodId),
+                customer_data: customData
+            };
+
+            try {
+                const response = await ApiService.post('/orders', orderData);
+                if (response.success) {
+                    if (response.payment_type === 'usdt') {
+                        // Redirect to payment page with invoice data
+                        localStorage.setItem('usdt_invoice', JSON.stringify(response.invoice));
+                        window.location.href = `payment-usdt.html?order=${response.order_number}`;
+                    } else {
+                        // Redirect to manual payment upload page
+                        localStorage.setItem('manual_instructions', JSON.stringify(response.instructions));
+                        window.location.href = `payment-manual.html?order=${response.order_number}`;
+                    }
+                } else {
+                    alert(response.error || 'حدث خطأ أثناء إنشاء الطلب.');
+                    btn.innerHTML = 'تأكيد الطلب';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('فشل الاتصال بالخادم.');
+                btn.innerHTML = 'تأكيد الطلب';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

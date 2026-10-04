@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تأكيد الدفع اليدوي - Digital Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: '#4f46e5', secondary: '#10b981' } } } }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased flex flex-col min-h-screen">
+    
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center text-gray-900 font-bold text-xl">
+                <i class="fa-solid fa-store text-primary ml-2"></i> Digital Store
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-2xl mx-auto px-4 py-8 w-full">
+        <h2 class="text-2xl font-bold mb-6">الدفع اليدوي</h2>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-lg font-bold mb-4 border-b pb-2">تعليمات الدفع</h3>
+            <div id="instructions" class="text-gray-700 whitespace-pre-line leading-relaxed bg-blue-50 p-4 rounded">
+                <!-- Instructions injected here -->
+            </div>
+        </div>
+
+        <form id="proofForm" class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold mb-4">رفع إثبات الدفع (Screenshot)</h3>
+            <p class="text-sm text-gray-500 mb-4">يرجى تحويل المبلغ المطلوب إلى الحساب المذكور أعلاه ثم رفع صورة الوصل هنا لتأكيد طلبك.</p>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">صورة الوصل</label>
+                <input type="file" id="proof_image" accept="image/png, image/jpeg, image/jpg" required class="block w-full border border-gray-300 rounded-md p-2">
+            </div>
+
+            <button type="submit" id="submitProofBtn" class="w-full bg-primary text-white font-bold py-3 px-4 rounded hover:bg-indigo-700 transition">
+                إرسال الإثبات
+            </button>
+        </form>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNumber = urlParams.get('order');
+            
+            const instructionsStr = localStorage.getItem('manual_instructions');
+            if (!instructionsStr || !orderNumber) {
+                alert('بيانات الدفع غير متوفرة.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const instructions = JSON.parse(instructionsStr);
+            
+            // Format instructions
+            let html = '';
+            for (const [key, value] of Object.entries(instructions)) {
+                html += `<strong>${key}:</strong> <span dir="ltr">${value}</span><br>`;
+            }
+            document.getElementById('instructions').innerHTML = html;
+        });
+
+        document.getElementById('proofForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitProofBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفع...';
+            btn.disabled = true;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNumber = urlParams.get('order');
+            
+            const formData = new FormData();
+            formData.append('order_number', orderNumber);
+            formData.append('proof_image', document.getElementById('proof_image').files[0]);
+
+            try {
+                // Assuming we add a multipart/form-data endpoint to the API
+                const response = await fetch(`${CONFIG.API_BASE_URL}/payments/proof`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('تم استلام إثبات الدفع بنجاح. سيتم مراجعته وتأكيد الطلب قريباً.');
+                    window.location.href = `order.html?order=${orderNumber}`;
+                } else {
+                    alert(result.error || 'فشل في رفع الملف.');
+                    btn.innerHTML = 'إرسال الإثبات';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('خطأ في الاتصال.');
+                btn.innerHTML = 'إرسال الإثبات';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
