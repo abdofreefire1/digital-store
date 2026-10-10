@@ -20,6 +20,10 @@ session_set_cookie_params([
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/functions.php';
