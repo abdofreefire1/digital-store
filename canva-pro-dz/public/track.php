@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $order) {
             }
         }
     }
-    $stmt = db()->prepare('SELECT id, public_code, customer_email, preferred_payment, amount_dzd, status, created_at, activation_sent_at, customer_confirmed_at FROM orders WHERE id=?');
+    $stmt = db()->prepare('SELECT id, public_code, customer_email, preferred_payment, amount_dzd, status, created_at, activation_sent_at, customer_confirmed_at, activation_url FROM orders WHERE id=?');
     $stmt->execute([$order['id']]); $order = $stmt->fetch() ?: $order;
 }
 ?><!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>متابعة الطلب — Canva Pro DZ</title><link rel="stylesheet" href="/assets/app.css"></head><body><header class="topbar"><a class="brand" href="/">Canva <span>Pro DZ</span></a><a href="/">الصفحة الرئيسية</a></header><main class="track-wrap">
