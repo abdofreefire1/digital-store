@@ -50,4 +50,16 @@
     if (button) button.textContent = next === 'ar' ? 'Français' : 'العربية';
   }
   button?.addEventListener('click', () => apply(lang === 'ar' ? 'fr' : 'ar'));
+  const fx = document.getElementById('fx-estimate');
+  if (fx) {
+    fetch('/api/rate.php', {headers:{'Accept':'application/json'}})
+      .then(response => { if (!response.ok) throw new Error('rate unavailable'); return response.json(); })
+      .then(data => {
+        if (!data.ok || !Number.isFinite(Number(data.usdt_estimate))) throw new Error('rate unavailable');
+        const estimate = Number(fx.dataset.price) * Number(data.usdt_estimate);
+        fx.textContent = (lang === 'ar' ? 'تقدير تقريبي: ' : 'Estimation indicative : ') + estimate.toFixed(2) + ' USD / USDT';
+        fx.title = data.note + ' · ' + data.source + ' · ' + data.updated_at;
+      })
+      .catch(() => { fx.textContent = lang === 'ar' ? 'تعذر جلب تقدير سعر الصرف حاليًا.' : 'Estimation du taux indisponible.'; });
+  }
 })();
