@@ -1,0 +1,5 @@
+includes/config.php
+/private_uploads/
+/private_uploads/*
+.env
+.DS_Store
